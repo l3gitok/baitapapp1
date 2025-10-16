@@ -100,15 +100,10 @@ public class AddEditNoteActivity extends AppCompatActivity {
         String title = editTextTitle.getText() != null ? editTextTitle.getText().toString().trim() : "";
         String content = editTextContent.getText() != null ? editTextContent.getText().toString().trim() : "";
 
-        if (title.isEmpty()) {
-            editTextTitle.setError("Vui lòng nhập tiêu đề");
-            editTextTitle.requestFocus();
-            return;
-        }
-
-        if (content.isEmpty()) {
-            editTextContent.setError("Vui lòng nhập nội dung");
-            editTextContent.requestFocus();
+        // Nếu cả tiêu đề và nội dung đều trống thì không lưu, chỉ thoát về giao diện
+        if (title.isEmpty() && content.isEmpty()) {
+            setResult(RESULT_CANCELED);
+            finish();
             return;
         }
 
@@ -128,12 +123,10 @@ public class AddEditNoteActivity extends AppCompatActivity {
     }
 
     private void handleBackPress() {
-        // Kiểm tra xem có thay đổi nào không
         String currentTitle = editTextTitle.getText() != null ? editTextTitle.getText().toString().trim() : "";
         String currentContent = editTextContent.getText() != null ? editTextContent.getText().toString().trim() : "";
 
         if (!currentTitle.isEmpty() || !currentContent.isEmpty()) {
-            // Có nội dung, hỏi xác nhận
             new androidx.appcompat.app.AlertDialog.Builder(this)
                     .setTitle("Thoát không lưu?")
                     .setMessage("Bạn có những thay đổi chưa được lưu. Bạn có chắc muốn thoát?")

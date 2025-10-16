@@ -12,8 +12,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 
 public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder> {
-    private List<Note> noteList;
-    private OnNoteClickListener listener;
+    private final List<Note> noteList;
+    private final OnNoteClickListener listener;
 
     public interface OnNoteClickListener {
         void onEditClick(Note note, int position);
@@ -35,7 +35,17 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
     @Override
     public void onBindViewHolder(@NonNull NoteViewHolder holder, int position) {
         Note note = noteList.get(position);
-        holder.titleTextView.setText(note.getTitle());
+        boolean isTitleEmpty = note.getTitle() == null || note.getTitle().trim().isEmpty();
+        boolean isContentNotEmpty = note.getContent() != null && !note.getContent().trim().isEmpty();
+        if (isTitleEmpty && isContentNotEmpty) {
+            holder.titleTextView.setText("Không có tiêu đề");
+            holder.titleTextView.setTextColor(holder.titleTextView.getResources().getColor(android.R.color.darker_gray));
+            holder.titleTextView.setTypeface(holder.titleTextView.getTypeface(), android.graphics.Typeface.ITALIC);
+        } else {
+            holder.titleTextView.setText(note.getTitle());
+            holder.titleTextView.setTextColor(holder.titleTextView.getResources().getColor(android.R.color.black));
+            holder.titleTextView.setTypeface(holder.titleTextView.getTypeface(), android.graphics.Typeface.NORMAL);
+        }
         holder.contentTextView.setText(note.getContent());
         holder.timestampTextView.setText(note.getTimestamp());
 
@@ -72,9 +82,18 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         notifyItemInserted(0);
     }
 
+    public void setNotes(List<Note> notes) {
+        noteList.clear();
+        noteList.addAll(notes);
+        notifyDataSetChanged();
+    }
+
     static class NoteViewHolder extends RecyclerView.ViewHolder {
-        TextView titleTextView, contentTextView, timestampTextView;
-        Button editButton, deleteButton;
+        final TextView titleTextView;
+        final TextView contentTextView;
+        final TextView timestampTextView;
+        final Button editButton;
+        final Button deleteButton;
 
         public NoteViewHolder(@NonNull View itemView) {
             super(itemView);

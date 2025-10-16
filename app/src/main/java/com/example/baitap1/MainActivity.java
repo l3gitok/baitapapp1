@@ -19,8 +19,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements NoteAdapter.OnNoteClickListener {
 
@@ -47,14 +50,30 @@ public class MainActivity extends AppCompatActivity implements NoteAdapter.OnNot
         setupActivityResultLauncher();
         setupRecyclerView();
         setupFab();
+        loadNotes();
         updateEmptyState();
     }
-
     private void initViews() {
         recyclerView = findViewById(R.id.recyclerView);
         fabAddNote = findViewById(R.id.fabAddNote);
         emptyStateText = findViewById(R.id.emptyStateText);
         noteList = new ArrayList<>();
+    }
+
+    private void loadNotes() {
+        noteList = NoteStorage.loadNotes(this);
+        noteAdapter.setNotes(noteList);
+        if (noteList.isEmpty()) {
+            emptyStateText.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.GONE);
+        } else {
+            emptyStateText.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void persistNotes() {
+        NoteStorage.saveNotes(this, noteList);
     }
 
     private void setupActivityResultLauncher() {
@@ -68,20 +87,33 @@ public class MainActivity extends AppCompatActivity implements NoteAdapter.OnNot
                         boolean isEditMode = data.getBooleanExtra(AddEditNoteActivity.EXTRA_IS_EDIT_MODE, false);
 
                         if (isEditMode) {
-                            // Cập nhật ghi chú
                             int position = data.getIntExtra(AddEditNoteActivity.EXTRA_POSITION, -1);
                             int noteId = data.getIntExtra(AddEditNoteActivity.EXTRA_NOTE_ID, -1);
-                            String timestamp = data.getStringExtra(AddEditNoteActivity.EXTRA_NOTE_TIMESTAMP);
-
+                            String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault()).format(new java.util.Date());
+                            // Nếu cả tiêu đề và nội dung đều trống thì không cập nhật
+                            if ((title == null || title.trim().isEmpty()) && (content == null || content.trim().isEmpty())) {
+                                Toast.makeText(this, "Không thể cập nhật ghi chú trống", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
                             if (position >= 0 && position < noteList.size()) {
                                 Note updatedNote = new Note(noteId, title, content, timestamp);
+                                noteList.set(position, updatedNote);
                                 noteAdapter.updateNote(position, updatedNote);
+                                persistNotes();
+                                loadNotes();
                                 Toast.makeText(this, "Ghi chú đã được cập nhật", Toast.LENGTH_SHORT).show();
                             }
                         } else {
-                            // Thêm ghi chú mới
+                            // Nếu cả tiêu đề và nội dung đều trống thì không thêm ghi chú mới
+                            if ((title == null || title.trim().isEmpty()) && (content == null || content.trim().isEmpty())) {
+                                Toast.makeText(this, "Không thể thêm ghi chú trống", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
                             Note newNote = new Note(title, content);
+                            noteList.add(0, newNote);
                             noteAdapter.addNote(newNote);
+                            persistNotes();
+                            updateEmptyState();
                             Toast.makeText(this, "Ghi chú đã được thêm", Toast.LENGTH_SHORT).show();
                         }
 
@@ -139,7 +171,10 @@ public class MainActivity extends AppCompatActivity implements NoteAdapter.OnNot
                 .setTitle("Xóa Ghi chú")
                 .setMessage("Bạn có chắc chắn muốn xóa ghi chú \"" + note.getTitle() + "\"?")
                 .setPositiveButton("Xóa", (dialog, which) -> {
-                    noteAdapter.removeNote(position);
+                    noteList.remove(position); // Xóa khỏi danh sách thực tế
+                    noteAdapter.removeNote(position); // Xóa khỏi adapter
+                    persistNotes(); // Lưu lại danh sách đã xóa
+                    loadNotes(); // Load lại dữ liệu từ SharedPreferences
                     updateEmptyState();
                     Toast.makeText(this, "Ghi chú đã được xóa", Toast.LENGTH_SHORT).show();
                 })
